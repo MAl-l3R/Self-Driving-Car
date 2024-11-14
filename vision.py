@@ -3,7 +3,7 @@ import time
 import threading
 import numpy as np
 
-##### HSV Colour Ranges #################
+##### HSV Colour Ranges ##########################################
 # Red color ranges
 redLower1 = np.array([0, 120, 70])
 redUpper1 = np.array([10, 255, 255])
@@ -17,7 +17,7 @@ yellowUpper = np.array([30, 255, 255])
 # Green color range
 greenLower = np.array([40, 70, 70])
 greenUpper = np.array([80, 255, 255])
-#########################################
+##################################################################
 
 ##### Camera Parameters ##########################################
 baseline = 0.1075  # Distance between the two cameras in meters
@@ -33,6 +33,7 @@ class Vision:
         self.angle = None
         self.color = None
 
+        # self.TrackerThread()  # Use this instead of the threading code below in macOS if you want to see camera view
         thread = threading.Thread(target=self.TrackerThread, daemon=True)
         thread.start()
         
