@@ -2,9 +2,6 @@
 # RUN ON BRICK
     
 import socket
-import os
-import time
-import math
 from ev3dev2.motor import LargeMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C, SpeedPercent
 
 center_axle = LargeMotor(OUTPUT_A)
