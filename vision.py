@@ -33,7 +33,7 @@ class Vision:
         self.angle = None
         self.color = None
 
-        # self.TrackerThread()  # Use this instead of the threading code below in macOS if you want to see camera view
+        # self.TrackerThread()  # Use this instead of the threading code below if on macOS if you want to see camera view
         thread = threading.Thread(target=self.TrackerThread, daemon=True)
         thread.start()
         
@@ -48,7 +48,7 @@ class Vision:
             rval_left, frame_left = vc_left.read()
             rval_right, frame_right = vc_right.read()
         else:
-            print("Could not open video streams")
+            print("\t\tERROR: Could not open video streams")
             rval_left = False
             rval_right = False
         
@@ -106,19 +106,22 @@ class Vision:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                         
                     else:
-                        print("Marker sizes do not match, likely not the same marker.")
+                        print("\t\tERROR: Marker sizes do not match, likely not the same marker.")
                         self.distance = None
                         self.angle = None
                         self.color = None
                 else:
-                    print("Colors do not match")
+                    print("\t\tERROR: Colors do not match")
                     self.distance = None
                     self.angle = None
                     self.color = None
             
             # If the same marker is not detected
             if not same_marker_detected:
-                print("Same marker not detected in both frames.")
+                print("\t\tERROR: Same marker not detected in both frames.")
+                self.distance = None  # Reset distance and color when markers don't match
+                self.color = None
+                
                 # Determine which camera sees the larger marker
                 if circle_left is not None and circle_right is not None:
                     radius_left = circle_left[2]
@@ -127,16 +130,18 @@ class Vision:
                         self.angle = -25
                     elif radius_right > radius_left:
                         self.angle = 25
+                    else:
+                        print("\t\tERROR: Markers have equal size; cannot determine direction.")
+                        self.angle = 0
+  
                 elif circle_left is not None and circle_right is None:
                     self.angle = -25
                 elif circle_left is None and circle_right is not None:
                     self.angle = 25
                 else:
-                    self.distance = None
                     self.angle = None  # No markers detected in either frame
-                    self.color = None
                 
-                if self.angle:
+                if self.angle is not None:
                     cv2.putText(frame_left, "Same marker not detected in both frames", (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                     cv2.putText(frame_left, f"Angle: Try {self.angle:.2f} deg", (10, 60),
@@ -147,7 +152,7 @@ class Vision:
                     cv2.putText(frame_right, f"Angle: Try {self.angle:.2f} deg", (10, 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
-            # Display the result (Does not work on macOS with threading. Uncomment for Windows)
+            # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
             # cv2.imshow("Left Camera", frame_left)
             # cv2.imshow("Right Camera", frame_right)
             
@@ -180,7 +185,7 @@ class Vision:
             self.angle = np.degrees(angle_rad)
 
         else:
-            print("Disparity is zero, cannot compute depth")
+            print("\t\tERROR: Disparity is zero, cannot compute depth")
             self.distance = None
             self.angle = None
             self.color = None
@@ -251,20 +256,21 @@ class Vision:
             cv2.rectangle(frame, (x - 5, y - 5), (x + 5, y + 5), dotColor, -1)
 
 if __name__ == "__main__":
-    print("Tracker Setup")
     vision = Vision()
+    print("Tracker Initializing...")
+    time.sleep(5)  # Wait for the tracker to initialize
     
     while True:
         # Output the distance, angle, and color
-        if vision.angle:
-            if vision.distance:
+        if vision.angle is not None:
+            if vision.distance is not None:
                 print(f"Distance to the marker: {vision.distance:.2f} centimeters")
 
             print(f"Angle to the marker: {vision.angle:.2f} degrees")
             
-            if vision.color:
+            if vision.color is not None:
                 print(f"Color of the marker: {vision.color}")
         
         else:
-            print("No marker detected in either frame")
+            print("\t\tERROR: No markers detected in either frame")
         time.sleep(1)
