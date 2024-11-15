@@ -40,8 +40,8 @@ class Vision:
     def TrackerThread(self):
         print("Tracker Started")
         # Get the cameras
-        vc_left = cv2.VideoCapture("http://10.0.0.66:8080/video")
-        vc_right = cv2.VideoCapture("http://10.0.0.123:8080/video")
+        vc_left = cv2.VideoCapture("http://10.0.0.123:8080/video")
+        vc_right = cv2.VideoCapture("http://10.0.0.66:8080/video")
         
         # Try to get the first frames
         if vc_left.isOpened() and vc_right.isOpened():
@@ -127,17 +127,17 @@ class Vision:
                     radius_left = circle_left[2]
                     radius_right = circle_right[2]
                     if radius_left > radius_right:
-                        self.angle = -25
+                        self.angle = -20
                     elif radius_right > radius_left:
-                        self.angle = 25
+                        self.angle = 20
                     else:
                         print("\t\tERROR: Markers have equal size; cannot determine direction.")
                         self.angle = 0
   
                 elif circle_left is not None and circle_right is None:
-                    self.angle = -25
+                    self.angle = -20
                 elif circle_left is None and circle_right is not None:
-                    self.angle = 25
+                    self.angle = 20
                 else:
                     self.angle = None  # No markers detected in either frame
                 
