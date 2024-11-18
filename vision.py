@@ -82,7 +82,7 @@ class Vision:
                         
                         # Image center (principal point)
                         image_width = frame_left.shape[1]
-                        c_x = image_width / 2  # Assuming principal point is at the image center
+                        c_x = image_width / 2
                         # Positions of the marker in left and right images
                         x_left = circle_left[0]
                         x_right = circle_right[0]
