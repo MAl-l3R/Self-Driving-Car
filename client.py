@@ -63,7 +63,7 @@ class Client:
         self.s.send("RESET".encode("UTF-8"))
 
 
-host = "10.0.0.191"
+host = "192.168.203.32"
 port = 9999 
 client = Client(host, port)
 while True:

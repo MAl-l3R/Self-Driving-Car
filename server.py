@@ -49,14 +49,14 @@ class Server:
 
 
 
-host = "10.0.0.191"
+host = "192.168.203.32"
 port = 9999
 server = Server(host, port)
 queue = Queue()
 
 MAX_STEERING_ANGLE = 45  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
-MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)
+MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
 TOLERANCE = 3  # degrees (tolerance for angle to the marker)
 WHEEL_DIAMETER = 5.6  # cm
 WHEELBASE = 15.0  # cm (distance between front and rear axles)
@@ -161,6 +161,8 @@ if __name__ == "__main__":
                         # Wait for robot to complete the action
                         reply = queue.get()
                         print("\tRobot reply:", reply)
+                    else:
+                        print("STOP: Red!")
 
                 else:
                     print("ERROR: No valid distance, not moving.")

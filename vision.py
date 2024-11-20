@@ -40,8 +40,8 @@ class Vision:
     def TrackerThread(self):
         print("Tracker Started")
         # Get the cameras
-        vc_left = cv2.VideoCapture("http://10.0.0.123:8080/video")
-        vc_right = cv2.VideoCapture("http://10.0.0.66:8080/video")
+        vc_left = cv2.VideoCapture("http://192.168.203.77:8080/video")
+        vc_right = cv2.VideoCapture("http://192.168.203.125:8080/video")
         
         # Try to get the first frames
         if vc_left.isOpened() and vc_right.isOpened():
@@ -106,19 +106,20 @@ class Vision:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                         
                     else:
-                        print("\t\tERROR: Marker sizes do not match, likely not the same marker.")
+                        # Marker sizes do not match, likely not the same marker.
+                        # print("\t\tERROR: Marker sizes do not match, likely not the same marker.")
                         self.distance = None
                         self.angle = None
                         self.color = None
                 else:
-                    print("\t\tERROR: Colors do not match")
+                    # Colors do not match, so not the same marker
+                    # print("\t\tERROR: Colors do not match")
                     self.distance = None
                     self.angle = None
                     self.color = None
             
             # If the same marker is not detected
             if not same_marker_detected:
-                print("\t\tERROR: Same marker not detected in both frames.")
                 self.distance = None  # Reset distance and color when markers don't match
                 self.color = None
                 
