@@ -10,9 +10,9 @@ rear_wheel_right = LargeMotor(OUTPUT_C)
 
 def move_joints(command):
     direction, duration, speed = command
-    direction = -direction  # Reverse the sign because front wheels spin in the opposite direction of center axle
+    direction = -direction  # Reverse the sign if needed
 
-    print("EXECUTE: direction = " + direction + ", duration = " + duration + ", speed = " + speed)
+    print("EXECUTE: direction = " + str(direction) + ", duration = " + str(duration) + ", speed = " + str(speed))
 
     # Turn the center axle to the steering angle first (blocking call)
     center_axle.on_for_degrees(SpeedPercent(100), direction)  # Turn to angle to the marker
