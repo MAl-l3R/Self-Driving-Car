@@ -12,7 +12,7 @@ def move_joints(command):
     direction, duration, speed = command
     direction = -direction  # Reverse the sign because front wheels spin in the opposite direction of center axle
 
-    print(f"Executing command: direction={direction}, duration={duration}, speed={speed}")
+    print("EXECUTE: direction = " + direction + ", duration = " + duration + ", speed = " + speed)
 
     # Turn the center axle to the steering angle first (blocking call)
     center_axle.on_for_degrees(SpeedPercent(100), direction)  # Turn to angle to the marker
@@ -47,11 +47,11 @@ class Client:
     # Block until a message from the server is received. When the message is received it will be decoded and returned as a string.
     # Output: UTF-8 decoded string containing the instructions from server.
     def pollData(self):
-        print("Waiting for Data")
+        print("\nWaiting for Data")
         data = self.s.recv(128).decode("UTF-8")
         if data:
-            execute(data)
             print("Data Received")
+            execute(data)
             return data
     
     # Sends a message to the server letting it know that the movement of the motors was executed without any inconvenience.
@@ -63,7 +63,7 @@ class Client:
         self.s.send("RESET".encode("UTF-8"))
 
 
-host = "169.254.45.54"
+host = "10.0.0.191"
 port = 9999 
 client = Client(host, port)
 while True:

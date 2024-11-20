@@ -28,8 +28,8 @@ class Server:
     #   queue [Thread-safe Queue]: Mutable data structure to store (and return) the messages received from the client
     def sendData(self, direction, duration, speed, queue):
         # Format in which the client expects the data: "direction,duration,speed"
-        data = f"{direction},{duration},{speed}"
-        print(f"Sending Data: ({data}) to robot.")
+        data = f"{direction:.2f},{duration:.2f},{speed}"
+        print(f"\tSending Data: ({data}) to robot.")
         self.cs.send(data.encode("UTF-8"))
         # Waiting for the client (EV3 brick) to let the server know that it is done moving
         reply = self.cs.recv(128).decode("UTF-8")
@@ -49,7 +49,7 @@ class Server:
 
 
 
-host = "169.254.45.54"
+host = "10.0.0.191"
 port = 9999
 server = Server(host, port)
 queue = Queue()
@@ -73,6 +73,7 @@ time.sleep(5)  # Wait for the tracker to initialize
 if __name__ == "__main__":
 
     while True:
+        print()
         # Get vision data
         angle = vision.angle
         distance = vision.distance
@@ -120,20 +121,21 @@ if __name__ == "__main__":
                         duration = 0
 
                 if duration > 0:
-                    print(f"Rotating robot by {desired_angle:.2f} degrees towards marker over {duration:.2f} seconds.")
+                    print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees towards marker over {duration:.2f} seconds.")
 
                     # Send command to robot
                     server.sendData(steering_angle, duration, speed, queue)
                     # Wait for robot to complete the action
                     reply = queue.get()
-                    print("Robot reply:", reply)
+                    print("\tRobot reply:", reply)
 
                     # Reset center axle motor rotation back to 0 position
+                    print("RESET: Resetting center axle")
                     # Send command to robot
                     server.sendData(-steering_angle, 0, 0, queue)
                     # Wait for robot to complete the action
                     reply = queue.get()
-                    print("Robot reply:", reply)
+                    print("\tRobot reply:", reply)
 
                     continue  # Continue adjusting until angle is approximately zero, i.e. robot is facing the marker
 
@@ -144,25 +146,26 @@ if __name__ == "__main__":
                 # Angle is approximately zero; move straight towards the marker
                 direction = 0
 
-                if distance is not None and speed > 0:
-                    # Calculate linear speed
-                    speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
+                if distance is not None:
+                    if speed > 0:
+                        # Calculate linear speed
+                        speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
 
-                    # Calculate duration to move based on distance
-                    duration = distance / speed_cm_per_sec  # seconds
+                        # Calculate duration to move based on distance
+                        duration = distance / speed_cm_per_sec  # seconds
 
-                    print(f"Moving forward {distance:.2f} centimeters at {speed}% speed for {duration:.2f} seconds.")
+                        print(f"MOVE: Moving forward {distance:.2f}cm at {speed*2}% speed for {duration:.2f} seconds.")
 
-                    # Send command to robot
-                    server.sendData(direction, duration, speed, queue)
-                    # Wait for robot to complete the action
-                    reply = queue.get()
-                    print("Robot reply:", reply)
+                        # Send command to robot
+                        server.sendData(direction, duration, speed, queue)
+                        # Wait for robot to complete the action
+                        reply = queue.get()
+                        print("\tRobot reply:", reply)
 
                 else:
-                    print("No valid distance or speed is zero, not moving.")
+                    print("ERROR: No valid distance, not moving.")
 
         else:
             # No marker detected, robot is idle
-            print("No marker detected, robot is idle.")
+            print("ERROR: No marker detected, robot is idle.")
             time.sleep(1)
