@@ -54,12 +54,13 @@ port = 9999
 server = Server(host, port)
 queue = Queue()
 
-MAX_STEERING_ANGLE = 45  # degrees
+MAX_STEERING_ANGLE = 40  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
 MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
 TOLERANCE = 3  # degrees (tolerance for angle to the marker)
 WHEEL_DIAMETER = 5.6  # cm
-WHEELBASE = 15.0  # cm (distance between front and rear axles)
+WHEELBASE = 14.75  # cm (distance between front and rear axles)
+# CALIBRATION_FACTOR = 3.45  # Derived from practical tests (1.90 / 0.55 ≈ 3.45)
 
 # Calculate maximum linear speed (circumference * rotations per second)
 WHEEL_CIRCUMFERENCE = math.pi * WHEEL_DIAMETER
@@ -81,9 +82,9 @@ if __name__ == "__main__":
 
         # Determine speed
         if color == 'green':
-            speed = 50
+            speed = 100
         elif color == 'yellow':
-            speed = 25
+            speed = 50
         elif color == 'red':
             speed = 0
         else:
@@ -94,7 +95,7 @@ if __name__ == "__main__":
             # Rotate the robot until robot is facing the marker
             if abs(angle) > TOLERANCE:
                 # Rotate robot towards the marker
-                speed = 25  # Slow speed to make the turn
+                speed = 50  # Slow speed to make the turn
                 # Desired change in heading angle (Δϕ)
                 desired_angle = angle
                 # Steering angle (θ) is limited by robot's capability. Can be equal to any angle, even vision.angle.
@@ -115,6 +116,7 @@ if __name__ == "__main__":
                     speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
                     if speed_cm_per_sec > 0:
                         duration = arc_length / speed_cm_per_sec  # seconds
+                        # duration = duration * CALIBRATION_FACTOR
                         # Limit the duration of turn to prevent overly long turns
                         duration = min(duration, MAX_DURATION)
                     else:
