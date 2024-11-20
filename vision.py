@@ -153,8 +153,8 @@ class Vision:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
             # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
-            # cv2.imshow("Left Camera", frame_left)
-            # cv2.imshow("Right Camera", frame_right)
+            cv2.imshow("Left Camera", frame_left)
+            cv2.imshow("Right Camera", frame_right)
             
             # Check if esc key pressed
             if cv2.waitKey(1) & 0xFF == 27:
