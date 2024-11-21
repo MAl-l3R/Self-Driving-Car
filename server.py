@@ -49,7 +49,7 @@ class Server:
 
 
 
-host = "192.168.203.32"
+host = "169.254.182.18"
 port = 9999
 server = Server(host, port)
 queue = Queue()
@@ -57,7 +57,7 @@ queue = Queue()
 MAX_STEERING_ANGLE = 40  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
 MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
-TOLERANCE = 3  # degrees (tolerance for angle to the marker)
+TOLERANCE = 5  # degrees (tolerance for angle to the marker)
 WHEEL_DIAMETER = 5.6  # cm
 WHEELBASE = 14.75  # cm (distance between front and rear axles)
 # CALIBRATION_FACTOR = 3.45  # Derived from practical tests (1.90 / 0.55 ≈ 3.45)
@@ -80,22 +80,26 @@ if __name__ == "__main__":
         distance = vision.distance
         color = vision.color
 
+        # Alter the angle and the distance
+        distance = distance - 20  # (Undershoot to be able to see the next marker)
+        angle = angle * 1.5  # (Overshoot just in case it's a sharp turn)
+
         # Determine speed
         if color == 'green':
-            speed = 100
-        elif color == 'yellow':
             speed = 50
+        elif color == 'yellow':
+            speed = 25
         elif color == 'red':
             speed = 0
         else:
             speed = 0  # Default to 0 speed
 
         # Move robot
-        if angle is not None:
+        if angle is not None and color != 'red':
             # Rotate the robot until robot is facing the marker
-            if abs(angle) > TOLERANCE:
+            if round(abs(angle)) > TOLERANCE or color is None:
                 # Rotate robot towards the marker
-                speed = 50  # Slow speed to make the turn
+                speed = 25  # Slow speed to make the turn
                 # Desired change in heading angle (Δϕ)
                 desired_angle = angle
                 # Steering angle (θ) is limited by robot's capability. Can be equal to any angle, even vision.angle.
@@ -149,27 +153,28 @@ if __name__ == "__main__":
                 direction = 0
 
                 if distance is not None:
-                    if speed > 0:
-                        # Calculate linear speed
-                        speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
+                    # Calculate linear speed
+                    speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
 
-                        # Calculate duration to move based on distance
-                        duration = distance / speed_cm_per_sec  # seconds
+                    # Calculate duration to move based on distance
+                    duration = distance / speed_cm_per_sec  # seconds
 
-                        print(f"MOVE: Moving forward {distance:.2f}cm at {speed*2}% speed for {duration:.2f} seconds.")
+                    print(f"MOVE: Moving forward {distance:.2f}cm at {speed*2}% speed for {duration:.2f} seconds.")
 
-                        # Send command to robot
-                        server.sendData(direction, duration, speed, queue)
-                        # Wait for robot to complete the action
-                        reply = queue.get()
-                        print("\tRobot reply:", reply)
-                    else:
-                        print("STOP: Red!")
+                    # Send command to robot
+                    server.sendData(direction, duration, speed, queue)
+                    # Wait for robot to complete the action
+                    reply = queue.get()
+                    print("\tRobot reply:", reply)
 
                 else:
                     print("ERROR: No valid distance, not moving.")
 
         else:
             # No marker detected, robot is idle
-            print("ERROR: No marker detected, robot is idle.")
+            if color == 'red':
+                print("STOP: Red!")
+
+            else:
+                print("ERROR: No marker detected, robot is idle.")
             time.sleep(1)

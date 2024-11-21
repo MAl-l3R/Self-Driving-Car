@@ -2,6 +2,7 @@
 # RUN ON BRICK
     
 import socket
+import time
 from ev3dev2.motor import LargeMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C, SpeedPercent
 
 center_axle = LargeMotor(OUTPUT_A)
@@ -26,6 +27,8 @@ def move_joints(command):
     rear_wheel_right.wait_while('running')
 
     print("Movement completed.")
+
+    time.sleep(5)  # DEBUG MODE: Just to see robot's progress step-by-step
 
 
 def execute(data):
@@ -63,7 +66,7 @@ class Client:
         self.s.send("RESET".encode("UTF-8"))
 
 
-host = "192.168.203.32"
+host = "169.254.182.18"
 port = 9999 
 client = Client(host, port)
 while True:

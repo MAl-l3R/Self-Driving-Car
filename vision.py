@@ -20,8 +20,8 @@ greenUpper = np.array([80, 255, 255])
 ##################################################################
 
 ##### Camera Parameters ##########################################
-baseline = 0.1075  # Distance between the two cameras in meters
-focal_length = 700  # Focal length in pixels
+baseline = 0.10  # Distance between the two cameras in meters
+focal_length = 500  # Focal length in pixels
 size_threshold = 0.2  # Tolerance level for size similarity (20%)
 ##################################################################
 
@@ -40,8 +40,8 @@ class Vision:
     def TrackerThread(self):
         print("Tracker Started")
         # Get the cameras
-        vc_left = cv2.VideoCapture("http://192.168.203.77:8080/video")
-        vc_right = cv2.VideoCapture("http://192.168.203.125:8080/video")
+        vc_left = cv2.VideoCapture("http://192.168.30.77:8080/video")
+        vc_right = cv2.VideoCapture("http://192.168.30.163:8080/video")
         
         # Try to get the first frames
         if vc_left.isOpened() and vc_right.isOpened():
