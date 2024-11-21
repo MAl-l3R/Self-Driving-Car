@@ -43,6 +43,10 @@ class Vision:
         # Get the cameras
         vc_left = cv2.VideoCapture("http://192.168.30.77:8080/video")
         vc_right = cv2.VideoCapture("http://192.168.30.163:8080/video")
+
+        # Set frame rates
+        vc_left.set(cv2.CAP_PROP_FPS, 30)
+        vc_right.set(cv2.CAP_PROP_FPS, 30)
         
         # Try to get the first frames
         if vc_left.isOpened() and vc_right.isOpened():

@@ -26,9 +26,13 @@ def move_joints(command):
     rear_wheel_left.wait_while('running')
     rear_wheel_right.wait_while('running')
 
+    # Reset center axle motor rotation back to 0 position
+    if direction != 0:
+        center_axle.on_for_degrees(SpeedPercent(100), -direction)
+
     print("Movement completed.")
 
-    time.sleep(5)  # DEBUG MODE: Just to see robot's progress step-by-step
+    time.sleep(1)  # DEBUG MODE: Just to see robot's progress step-by-step
 
 
 def execute(data):

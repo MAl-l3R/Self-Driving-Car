@@ -132,14 +132,6 @@ if __name__ == "__main__":
                     reply = queue.get()
                     print("\tRobot reply:", reply)
 
-                    # Reset center axle motor rotation back to 0 position
-                    print("RESET: Resetting center axle")
-                    # Send command to robot
-                    server.sendData(-steering_angle, 0, 0, queue)
-                    # Wait for robot to complete the action
-                    reply = queue.get()
-                    print("\tRobot reply:", reply)
-
                     continue  # Continue adjusting until angle is approximately zero, i.e. robot is facing the marker
 
                 else:
