@@ -23,6 +23,7 @@ greenUpper = np.array([80, 255, 255])
 baseline = 0.10  # Distance between the two cameras in meters
 focal_length = 500  # Focal length in pixels
 size_threshold = 0.2  # Tolerance level for size similarity (20%)
+largest_marker_radius = 80  # Largest detectable marker's radius
 ##################################################################
 
 
@@ -226,19 +227,20 @@ class Vision:
         contours, _ = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in contours:
             contours_with_color.append(('green', c))
-        
+            
         # Proceed only if at least one contour was found
         if len(contours_with_color) > 0:
-            # Find the largest contour among all colors
-            largest_contour_color, largest_contour = max(contours_with_color, key=lambda x: cv2.contourArea(x[1]))
-            # Determine the circle enclosing the largest contour
-            ((x, y), radius) = cv2.minEnclosingCircle(largest_contour)
-            if radius > 10:  # Add the upper limit condition here ########
-                # Return the circle parameters and the color
-                print("#######################################")
-                print("RADIUS: ", radius)  # Keep track of the largest radius and use that as upper limit #######
-                print("#######################################")
-                return np.array([x, y, radius]), largest_contour_color
+            # Sort the contours by area in descending order
+            contours_with_color.sort(key=lambda x: cv2.contourArea(x[1]), reverse=True)
+            
+            # Iterate through the sorted contours to find the first valid one
+            for color, contour in contours_with_color:
+                # Determine the circle enclosing the current contour
+                ((x, y), radius) = cv2.minEnclosingCircle(contour)
+                if 10 < radius <= largest_marker_radius:
+                    # Return the circle parameters and the color
+                    return np.array([x, y, radius]), color
+        
         return None, None
 
     def DrawCircle(self, frame, circle, color_name):

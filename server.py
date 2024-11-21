@@ -57,7 +57,7 @@ queue = Queue()
 MAX_STEERING_ANGLE = 40  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
 MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
-TOLERANCE = 5  # degrees (tolerance for angle to the marker)
+TOLERANCE = 15  # degrees (tolerance for angle to the marker)
 WHEEL_DIAMETER = 5.6  # cm
 WHEELBASE = 14.75  # cm (distance between front and rear axles)
 # CALIBRATION_FACTOR = 3.45  # Derived from practical tests (1.90 / 0.55 ≈ 3.45)
@@ -80,10 +80,6 @@ if __name__ == "__main__":
         distance = vision.distance
         color = vision.color
 
-        # Alter the angle and the distance
-        distance = distance - 20  # (Undershoot to be able to see the next marker)
-        angle = angle * 1.5  # (Overshoot just in case it's a sharp turn)
-
         # Determine speed
         if color == 'green':
             speed = 50
@@ -99,6 +95,7 @@ if __name__ == "__main__":
             # Rotate the robot until robot is facing the marker
             if round(abs(angle)) > TOLERANCE or color is None:
                 # Rotate robot towards the marker
+                angle = angle * 1.5  # (Overshoot just in case it's a sharp turn)
                 speed = 25  # Slow speed to make the turn
                 # Desired change in heading angle (Δϕ)
                 desired_angle = angle
@@ -150,6 +147,10 @@ if __name__ == "__main__":
 
             else:
                 # Angle is approximately zero; move straight towards the marker
+                if color == 'green':
+                    distance = distance - 20  # (Undershoot extra for fast speed to be able to see the next marker)
+                else:
+                    distance = distance - 15  # (Undershoot to be able to see the next marker)
                 direction = 0
 
                 if distance is not None:
