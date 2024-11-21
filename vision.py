@@ -233,8 +233,11 @@ class Vision:
             largest_contour_color, largest_contour = max(contours_with_color, key=lambda x: cv2.contourArea(x[1]))
             # Determine the circle enclosing the largest contour
             ((x, y), radius) = cv2.minEnclosingCircle(largest_contour)
-            if radius > 10:
+            if radius > 10:  # Add the upper limit condition here ########
                 # Return the circle parameters and the color
+                print("#######################################")
+                print("RADIUS: ", radius)  # Keep track of the largest radius and use that as upper limit #######
+                print("#######################################")
                 return np.array([x, y, radius]), largest_contour_color
         return None, None
 
