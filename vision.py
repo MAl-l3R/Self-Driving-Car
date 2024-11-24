@@ -24,153 +24,208 @@ baseline = 0.10  # Distance between the two cameras in meters
 focal_length = 500  # Focal length in pixels
 size_threshold = 0.2  # Tolerance level for size similarity (20%)
 largest_marker_radius = 80  # Largest detectable marker's radius
+distance_to_largest_marker_radius = 20  # In centimeters
 ##################################################################
 
 
 class Vision:
     
-    def __init__(self):
+    def __init__(self, stereo):
         self.distance = None
         self.angle = None
         self.color = None
 
-        # self.TrackerThread()  # Use this instead of the threading code below if on macOS if you want to see camera view
-        thread = threading.Thread(target=self.TrackerThread, daemon=True)
+        # self.TrackerThread(stereo)  # Use this instead of the threading code below if on macOS if you want to see camera view
+        thread = threading.Thread(target=self.TrackerThread, args=(stereo), daemon=True)
         thread.start()
         
-    def TrackerThread(self):
+    def TrackerThread(self, stereo):
         print("Tracker Started")
-        # Get the cameras
-        vc_left = cv2.VideoCapture("http://192.168.199.77:8080/video")
-        vc_right = cv2.VideoCapture("http://192.168.199.16:8080/video")
+        # Check is user wants to use stereo vision or single camera
+        if stereo:
+            # Get the cameras
+            vc_left = cv2.VideoCapture("http://192.168.199.77:8080/video")   # Other phone
+            vc_right = cv2.VideoCapture("http://192.168.199.16:8080/video")  # Maher's phone
 
-        # Set frame rates
-        vc_left.set(cv2.CAP_PROP_FPS, 30)
-        vc_right.set(cv2.CAP_PROP_FPS, 30)
-        
-        # Try to get the first frames
-        if vc_left.isOpened() and vc_right.isOpened():
-            rval_left, frame_left = vc_left.read()
-            rval_right, frame_right = vc_right.read()
-        else:
-            print("\t\tERROR: Could not open video streams")
-            rval_left = False
-            rval_right = False
-        
-        while rval_left and rval_right:
-            # Get the frames
-            rval_left, frame_left = vc_left.read()
-            rval_right, frame_right = vc_right.read()
+            # Set frame rates
+            vc_left.set(cv2.CAP_PROP_FPS, 30)
+            vc_right.set(cv2.CAP_PROP_FPS, 30)
             
-            # Process the frames
-            circle_left, color_left = self.GetLocation(frame_left)     # Left frame
-            circle_right, color_right = self.GetLocation(frame_right)  # Right frame
+            # Try to get the first frames
+            if vc_left.isOpened() and vc_right.isOpened():
+                rval_left, frame_left = vc_left.read()
+                rval_right, frame_right = vc_right.read()
+            else:
+                print("\t\tERROR: Could not open video streams")
+                rval_left = False
+                rval_right = False
             
-            # Draw the detected circles
-            self.DrawCircle(frame_left, circle_left, color_left)
-            self.DrawCircle(frame_right, circle_right, color_right)
-            
-            # Initialize flag
-            same_marker_detected = False
-            
-            # Verify that both cameras detected the same marker
-            if circle_left is not None and circle_right is not None:
-                # Check if colors match
-                if color_left == color_right:
-                    self.color = color_left
-                    # Check if sizes (radii) are similar within tolerance
-                    radius_left = circle_left[2]
-                    radius_right = circle_right[2]
-                    size_difference = abs(radius_left - radius_right) / max(radius_left, radius_right)
-                    if size_difference <= size_threshold:
-                        same_marker_detected = True
-                        
-                        # Image center (principal point)
-                        image_width = frame_left.shape[1]
-                        c_x = image_width / 2
-                        # Positions of the marker in left and right images
-                        x_left = circle_left[0]
-                        x_right = circle_right[0]
-                        
-                        # Compute disparity, depth, and angle
-                        self.StereoVision(c_x, x_left, x_right)
-                                
-                        # Overlay the information on the video frames
-                        if self.distance is not None and self.angle is not None and self.color is not None:
-                            cv2.putText(frame_left, f"Distance: {self.distance:.2f} cm", (10, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                            cv2.putText(frame_left, f"Angle: {self.angle:.2f} deg", (10, 60),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                            cv2.putText(frame_left, f"Color: {self.color}", (10, 90),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            while rval_left and rval_right:
+                # Get the frames
+                rval_left, frame_left = vc_left.read()
+                rval_right, frame_right = vc_right.read()
+                
+                # Process the frames
+                circle_left, color_left = self.GetLocation(frame_left)     # Left frame
+                circle_right, color_right = self.GetLocation(frame_right)  # Right frame
+                
+                # Draw the detected circles
+                self.DrawCircle(frame_left, circle_left, color_left)
+                self.DrawCircle(frame_right, circle_right, color_right)
+                
+                # Initialize flag
+                same_marker_detected = False
+                
+                # Verify that both cameras detected the same marker
+                if circle_left is not None and circle_right is not None:
+                    # Check if colors match
+                    if color_left == color_right:
+                        self.color = color_left
+                        # Check if sizes (radii) are similar within tolerance
+                        radius_left = circle_left[2]
+                        radius_right = circle_right[2]
+                        size_difference = abs(radius_left - radius_right) / max(radius_left, radius_right)
+                        if size_difference <= size_threshold:
+                            same_marker_detected = True
                             
-                            cv2.putText(frame_right, f"Distance: {self.distance:.2f} cm", (10, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                            cv2.putText(frame_right, f"Angle: {self.angle:.2f} deg", (10, 60),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                            cv2.putText(frame_right, f"Color: {self.color}", (10, 90),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        
+                            # Image center (principal point)
+                            image_width = frame_left.shape[1]
+                            c_x = image_width / 2
+                            
+                            # Positions of the marker in left and right images
+                            x_left = circle_left[0]
+                            x_right = circle_right[0]
+                            
+                            # Compute disparity, depth, and angle
+                            self.StereoVision(c_x, x_left, x_right)
+                                    
+                            # Overlay the information on the video frames
+                            if self.distance is not None and self.angle is not None and self.color is not None:
+                                cv2.putText(frame_left, f"Distance: {self.distance:.2f} cm", (10, 30),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                                cv2.putText(frame_left, f"Angle: {self.angle:.2f} deg", (10, 60),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                                cv2.putText(frame_left, f"Color: {self.color}", (10, 90),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                                
+                                cv2.putText(frame_right, f"Distance: {self.distance:.2f} cm", (10, 30),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                                cv2.putText(frame_right, f"Angle: {self.angle:.2f} deg", (10, 60),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                                cv2.putText(frame_right, f"Color: {self.color}", (10, 90),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            
+                        else:
+                            # Marker sizes do not match, likely not the same marker.
+                            # print("\t\tERROR: Marker sizes do not match, likely not the same marker.")
+                            self.distance = None
+                            self.angle = None
+                            self.color = None
                     else:
-                        # Marker sizes do not match, likely not the same marker.
-                        # print("\t\tERROR: Marker sizes do not match, likely not the same marker.")
+                        # Colors do not match, so not the same marker
+                        # print("\t\tERROR: Colors do not match")
                         self.distance = None
                         self.angle = None
                         self.color = None
-                else:
-                    # Colors do not match, so not the same marker
-                    # print("\t\tERROR: Colors do not match")
-                    self.distance = None
-                    self.angle = None
-                    self.color = None
-            
-            # If the same marker is not detected
-            if not same_marker_detected:
-                self.distance = None  # Reset distance and color when markers don't match
-                self.color = None
                 
-                # Determine which camera sees the larger marker
-                if circle_left is not None and circle_right is not None:
-                    radius_left = circle_left[2]
-                    radius_right = circle_right[2]
-                    if radius_left > radius_right:
+                # If the same marker is not detected
+                if not same_marker_detected:
+                    self.distance = None  # Reset distance and color when markers don't match
+                    self.color = None
+                    
+                    # Determine which camera sees the larger marker
+                    if circle_left is not None and circle_right is not None:
+                        radius_left = circle_left[2]
+                        radius_right = circle_right[2]
+                        if radius_left > radius_right:
+                            self.angle = -20
+                        elif radius_right > radius_left:
+                            self.angle = 20
+                        else:
+                            print("\t\tERROR: Markers have equal size; cannot determine direction.")
+                            self.angle = 0
+    
+                    elif circle_left is not None and circle_right is None:
                         self.angle = -20
-                    elif radius_right > radius_left:
+                    elif circle_left is None and circle_right is not None:
                         self.angle = 20
                     else:
-                        print("\t\tERROR: Markers have equal size; cannot determine direction.")
-                        self.angle = 0
-  
-                elif circle_left is not None and circle_right is None:
-                    self.angle = -20
-                elif circle_left is None and circle_right is not None:
-                    self.angle = 20
-                else:
-                    self.angle = None  # No markers detected in either frame
-                
-                if self.angle is not None:
-                    cv2.putText(frame_left, "Same marker not detected in both frames", (10, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                    cv2.putText(frame_left, f"Angle: Try {self.angle:.2f} deg", (10, 60),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        self.angle = None  # No markers detected in either frame
                     
-                    cv2.putText(frame_right, "Same marker not detected in both frames", (10, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                    cv2.putText(frame_right, f"Angle: Try {self.angle:.2f} deg", (10, 60),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    if self.angle is not None:
+                        cv2.putText(frame_left, "Same marker not detected in both frames", (10, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        cv2.putText(frame_left, f"Angle: Try {self.angle:.2f} deg", (10, 60),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        
+                        cv2.putText(frame_right, "Same marker not detected in both frames", (10, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        cv2.putText(frame_right, f"Angle: Try {self.angle:.2f} deg", (10, 60),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                
+                # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
+                cv2.imshow("Left Camera", frame_left)
+                cv2.imshow("Right Camera", frame_right)
+                
+                # Check if esc key pressed
+                if cv2.waitKey(1) & 0xFF == 27:
+                    break
             
-            # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
-            cv2.imshow("Left Camera", frame_left)
-            cv2.imshow("Right Camera", frame_right)
-            
-            # Check if esc key pressed
-            if cv2.waitKey(1) & 0xFF == 27:
-                break
+            vc_left.release()
+            vc_right.release()
+            cv2.destroyAllWindows()
+            print("Tracker Ended")
         
-        vc_left.release()
-        vc_right.release()
-        cv2.destroyAllWindows()
-        print("Tracker Ended")
+        else:
+            vc = cv2.VideoCapture("http://192.168.199.16:8080/video")  # Maher's phone
+            
+            # Try to get the first frames
+            if vc.isOpened():
+                rval, frame = vc.read()
+            else:
+                print("\t\tERROR: Could not open video stream")
+                rval = False
+            
+            while rval:
+                # Get the frame
+                rval, frame = vc.read()
+                
+                # Process the frame
+                circle, color = self.GetLocation(frame)
+                
+                # Draw the detected circle
+                self.DrawCircle(frame, circle, color)
+                
+                # Calculate distance to marker and angle to marker
+                if circle is not None:
+                    self.color = color
+                        
+                    # Image center (principal point)
+                    image_width = frame.shape[1]
+                    c_x = image_width / 2
+                    
+                    # Compute disparity, depth, and angle
+                    self.SingleCameraCalculations(c_x, circle)
+                            
+                    # Overlay the information on the video frames
+                    if self.distance is not None and self.angle is not None and self.color is not None:
+                        cv2.putText(frame, f"Distance: {self.distance:.2f} cm", (10, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                        cv2.putText(frame, f"Angle: {self.angle:.2f} deg", (10, 60),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                        cv2.putText(frame, f"Color: {self.color}", (10, 90),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
+                cv2.imshow("Camera", frame)
+                
+                # Check if esc key pressed
+                if cv2.waitKey(1) & 0xFF == 27:
+                    break
+            
+            vc.release()
+            cv2.destroyAllWindows()
+            print("Tracker Ended")
     
     def StereoVision(self, c_x, x_left, x_right):        
         disparity = abs(x_left - x_right)  # In pixels
@@ -196,6 +251,26 @@ class Vision:
             self.distance = None
             self.angle = None
             self.color = None
+            
+    def SingleCameraCalculations(self, c_x, circle):
+        # Extract the marker's information
+        x, y, radius = circle
+        
+        # Calculate the distance to the marker using scaling
+        if radius > 0:
+            # Approach 1
+            self.distance = (distance_to_largest_marker_radius * largest_marker_radius) / radius  # Distance in cm
+
+            # Calculate the angle to the marker
+            del_x = x - c_x  # Horizontal Displacement
+            
+            # Calculate the angle in radians and then convert to degrees
+            angle_rad = np.arctan2(del_x, focal_length)
+            self.angle = np.degrees(angle_rad)
+        else:
+            self.distance = None
+            self.angle = None
+            self.color = None     
         
     def GetLocation(self, frame):
         # Convert the frame to HSV color space
@@ -267,7 +342,7 @@ class Vision:
             cv2.rectangle(frame, (x - 5, y - 5), (x + 5, y + 5), dotColor, -1)
 
 if __name__ == "__main__":
-    vision = Vision()
+    vision = Vision(stereo=True)
     print("Tracker Initializing...")
     time.sleep(5)  # Wait for the tracker to initialize
     
@@ -283,5 +358,5 @@ if __name__ == "__main__":
                 print(f"Color of the marker: {vision.color}")
         
         else:
-            print("\t\tERROR: No markers detected in either frame")
+            print("\t\tERROR: No markers detected.")
         time.sleep(1)

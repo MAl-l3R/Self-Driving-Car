@@ -67,7 +67,7 @@ WHEEL_CIRCUMFERENCE = math.pi * WHEEL_DIAMETER
 MAX_ROTATIONS_PER_SEC = MAX_MOTOR_SPEED / 360.0
 MAX_SPEED_CM_PER_SEC = WHEEL_CIRCUMFERENCE * MAX_ROTATIONS_PER_SEC
 
-vision = vs.Vision()
+vision = vs.Vision(stereo=True)
 print("Tracker Initializing...")
 time.sleep(5)  # Wait for the tracker to initialize
 
