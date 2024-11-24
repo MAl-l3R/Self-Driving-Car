@@ -71,7 +71,59 @@ vision = vs.Vision()
 print("Tracker Initializing...")
 time.sleep(5)  # Wait for the tracker to initialize
 
+
+def calculateRotation(angle):
+    # Rotate robot towards the marker
+    angle = angle * 1.5  # (Overshoot just in case it's a sharp turn)
+    speed = 25  # Slow speed to make the turn
+    # Desired change in heading angle (Δϕ)
+    desired_angle = angle
+    # Steering angle (θ) is limited by robot's capability. Can be equal to any angle, even vision.angle.
+    steering_angle = max(min(angle, MAX_STEERING_ANGLE), -MAX_STEERING_ANGLE)
+
+    # Calculate duration needed to make the turn
+    steering_angle_rad = abs(steering_angle) * (math.pi / 180.0)
+    if steering_angle_rad == 0:
+        duration = 0
+    else:
+        # Calculate turning radius
+        R = WHEELBASE / math.tan(steering_angle_rad)
+        # Convert desired change in heading angle to radians
+        desired_angle_rad = abs(desired_angle) * (math.pi / 180.0)
+        # Calculate arc length
+        arc_length = R * desired_angle_rad  # cm
+        # Calculate linear speed
+        speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
+        if speed_cm_per_sec > 0:
+            duration = arc_length / speed_cm_per_sec  # seconds
+            # duration = duration * CALIBRATION_FACTOR
+            # Limit the duration of turn to prevent overly long turns
+            duration = min(duration, MAX_DURATION)
+        else:
+            duration = 0
+    return desired_angle, steering_angle, duration, speed
+
+def rotateRobot(desired_angle, steering_angle, duration, speed, towards=True):
+    if duration > 0:
+        if towards:
+            print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees towards marker over {duration:.2f} seconds.")
+        else:
+            print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees backwards over {duration:.2f} seconds.")
+
+        # Send command to robot
+        server.sendData(steering_angle, duration, speed, queue)
+        # Wait for robot to complete the action
+        reply = queue.get()
+        print("\tRobot reply:", reply)
+
+    else:
+        print("Speed is zero or duration is zero, not moving.")
+
+
 if __name__ == "__main__":
+    
+    checked_left = False
+    checked_right = False
 
     while True:
         print()
@@ -92,50 +144,14 @@ if __name__ == "__main__":
 
         # Move robot
         if angle is not None and color != 'red':
+            # Marker detected, so reset checked_left and checked_right
+            checked_left = False
+            checked_right = False
+            
             # Rotate the robot until robot is facing the marker
             if round(abs(angle)) > TOLERANCE or color is None:
-                # Rotate robot towards the marker
-                angle = angle * 1.5  # (Overshoot just in case it's a sharp turn)
-                speed = 25  # Slow speed to make the turn
-                # Desired change in heading angle (Δϕ)
-                desired_angle = angle
-                # Steering angle (θ) is limited by robot's capability. Can be equal to any angle, even vision.angle.
-                steering_angle = max(min(angle, MAX_STEERING_ANGLE), -MAX_STEERING_ANGLE)
-
-                # Calculate duration needed to make the turn
-                steering_angle_rad = abs(steering_angle) * (math.pi / 180.0)
-                if steering_angle_rad == 0:
-                    duration = 0
-                else:
-                    # Calculate turning radius
-                    R = WHEELBASE / math.tan(steering_angle_rad)
-                    # Convert desired change in heading angle to radians
-                    desired_angle_rad = abs(desired_angle) * (math.pi / 180.0)
-                    # Calculate arc length
-                    arc_length = R * desired_angle_rad  # cm
-                    # Calculate linear speed
-                    speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
-                    if speed_cm_per_sec > 0:
-                        duration = arc_length / speed_cm_per_sec  # seconds
-                        # duration = duration * CALIBRATION_FACTOR
-                        # Limit the duration of turn to prevent overly long turns
-                        duration = min(duration, MAX_DURATION)
-                    else:
-                        duration = 0
-
-                if duration > 0:
-                    print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees towards marker over {duration:.2f} seconds.")
-
-                    # Send command to robot
-                    server.sendData(steering_angle, duration, speed, queue)
-                    # Wait for robot to complete the action
-                    reply = queue.get()
-                    print("\tRobot reply:", reply)
-
-                    continue  # Continue adjusting until angle is approximately zero, i.e. robot is facing the marker
-
-                else:
-                    print("Speed is zero or duration is zero, not moving.")
+                desired_angle, steering_angle, duration, speed = calculateRotation(angle)
+                rotateRobot(desired_angle, steering_angle, duration, speed)
 
             else:
                 # Angle is approximately zero; move straight towards the marker
@@ -164,10 +180,33 @@ if __name__ == "__main__":
                     print("ERROR: No valid distance, not moving.")
 
         else:
-            # No marker detected, robot is idle
+            # Red marker detected, so stop
             if color == 'red':
                 print("STOP: Red!")
+                time.sleep(1)
 
+            # No marker detected, robot is idle
             else:
-                print("ERROR: No marker detected, robot is idle.")
-            time.sleep(1)
+                print("No marker detected.")
+                
+                if not checked_left and not checked_right:
+                    # Check left side first
+                    checked_left = True
+                    print("\tRobot is checking left side for markers.")
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-20)
+                    rotateRobot(desired_angle, steering_angle, duration, speed)
+                elif checked_left and not checked_right:
+                    # Check right side, but first reverse back to original track
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-20)
+                    rotateRobot(desired_angle, steering_angle, duration, -speed, towards=False)
+                    
+                    checked_right = True
+                    print("\tRobot is checking right side for markers.")
+                    desired_angle, steering_angle, duration, speed = calculateRotation(20)
+                    rotateRobot(desired_angle, steering_angle, duration, speed)
+                else:
+                    # Both sides checked, robot is idle
+                    print("\tBoth sides checked. No marker detected, robot is idle.")
+                    time.sleep(1)
+                    
+            
