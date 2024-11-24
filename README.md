@@ -7,6 +7,8 @@ This project implements a self-driving robot capable of navigating towards a seq
 
 The robot dynamically adjusts its movement based on the marker's color (green, yellow, or red) and the marker’s position.  
 
+Video Demo: https://drive.google.com/file/d/1f2Zs8-B_L2gvpKYR5BC-QMHg9-b_ek6E/view?usp=sharing
+
 ---
 
 ## ✨ Features  
