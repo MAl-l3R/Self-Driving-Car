@@ -54,7 +54,7 @@ port = 9999
 server = Server(host, port)
 queue = Queue()
 
-MAX_STEERING_ANGLE = 40  # degrees
+MAX_STEERING_ANGLE = 35  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
 MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
 TOLERANCE = 15  # degrees (tolerance for angle to the marker)
@@ -108,7 +108,10 @@ def rotateRobot(desired_angle, steering_angle, duration, speed, towards=True):
         if towards:
             print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees towards marker over {duration:.2f} seconds.")
         else:
-            print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees backwards over {duration:.2f} seconds.")
+            if desired_angle == 0:
+                print(f"REVERSE: Reversing the robot for {duration:.2f} seconds.")
+            else:
+                print(f"ROTATE: Rotating robot by {desired_angle:.2f} degrees backwards over {duration:.2f} seconds.")
 
         # Send command to robot
         server.sendData(steering_angle, duration, speed, queue)
@@ -161,7 +164,7 @@ if __name__ == "__main__":
                     distance = distance - 15  # (Undershoot to be able to see the next marker)
                 direction = 0
 
-                if distance is not None:
+                if distance is not None and distance >= 0:
                     # Calculate linear speed
                     speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
 
@@ -204,6 +207,13 @@ if __name__ == "__main__":
                     print("\tRobot is checking right side for markers.")
                     desired_angle, steering_angle, duration, speed = calculateRotation(30)
                     rotateRobot(desired_angle, steering_angle, duration, speed)
+                elif checked_left and checked_right:
+                    # Reverse to check, but first reverse back to original track
+                    desired_angle, steering_angle, duration, speed = calculateRotation(30)
+                    rotateRobot(desired_angle, steering_angle, duration, -speed, towards=False)
+
+                    print("\tRobot is reversing to search for markers.")
+                    rotateRobot(0, 0, 2, -25, towards=False)
                 else:
                     # Both sides checked, robot is idle
                     print("\tBoth sides checked. No marker detected, robot is idle.")

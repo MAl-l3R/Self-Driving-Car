@@ -36,7 +36,7 @@ class Vision:
         self.color = None
 
         # self.TrackerThread(stereo)  # Use this instead of the threading code below if on macOS if you want to see camera view
-        thread = threading.Thread(target=self.TrackerThread, args=(stereo), daemon=True)
+        thread = threading.Thread(target=self.TrackerThread, args=(stereo,), daemon=True)
         thread.start()
         
     def TrackerThread(self, stereo):
@@ -44,8 +44,8 @@ class Vision:
         # Check is user wants to use stereo vision or single camera
         if stereo:
             # Get the cameras
-            vc_left = cv2.VideoCapture("http://192.168.199.77:8080/video")   # Other phone
-            vc_right = cv2.VideoCapture("http://192.168.199.16:8080/video")  # Maher's phone
+            vc_left = cv2.VideoCapture("http://192.168.81.77:8080/video")   # Other phone
+            vc_right = cv2.VideoCapture("http://192.168.81.44:8080/video")  # Maher's phone
 
             # Set frame rates
             vc_left.set(cv2.CAP_PROP_FPS, 30)
@@ -177,7 +177,7 @@ class Vision:
             print("Tracker Ended")
         
         else:
-            vc = cv2.VideoCapture("http://192.168.199.16:8080/video")  # Maher's phone
+            vc = cv2.VideoCapture("http://192.168.81.44:8080/video")  # Maher's phone
             
             # Try to get the first frames
             if vc.isOpened():
@@ -200,12 +200,12 @@ class Vision:
                 if circle is not None:
                     self.color = color
                         
-                    # Image center (principal point)
-                    image_width = frame.shape[1]
-                    c_x = image_width / 2
+                    # Frame dimensions
+                    frame_height = frame.shape[0]
+                    frame_width = frame.shape[1]
                     
                     # Compute disparity, depth, and angle
-                    self.SingleCameraCalculations(c_x, circle)
+                    self.SingleCameraCalculations(frame_height, frame_width, circle)
                             
                     # Overlay the information on the video frames
                     if self.distance is not None and self.angle is not None and self.color is not None:
@@ -215,6 +215,11 @@ class Vision:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                         cv2.putText(frame, f"Color: {self.color}", (10, 90),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                else:
+                    # Reset readings to avoid misinformation
+                    self.distance = None
+                    self.angle = None
+                    self.color = None
                 
                 # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
                 cv2.imshow("Camera", frame)
@@ -252,9 +257,44 @@ class Vision:
             self.angle = None
             self.color = None
             
-    def SingleCameraCalculations(self, c_x, circle):
+    def SingleCameraCalculations(self, frame_height, frame_width, circle):
         # Extract the marker's information
         x, y, radius = circle
+        c_x = frame_width / 2
+
+        # Contour completeness check
+        margin = 5  # Pixel margin to check if marker is too close to the frame edges
+        tolerance = 15  # degrees (tolerance for angle to the marker)
+        if (x - radius < margin or x + radius > frame_width - margin):
+            if round(radius) < 55:
+                self.distance = None
+                self.color = radius
+                if x - c_x > tolerance:
+                    self.angle = 20
+                elif x - c_x < -tolerance:
+                    self.angle = -20
+                else:
+                    self.angle = 0
+                return
+        if (y - radius < margin or y + radius > frame_height - margin):
+            if round(radius) < 65:
+                self.distance = None
+                self.color = radius
+                if x - c_x > 0:
+                    self.angle = 20
+                elif x - c_x < 0:
+                    self.angle = -20
+                else:
+                    self.angle = 0
+                return
+            
+        # Minimum radius threshold to filter out small unreliable detections
+        threshold = 15  # Pixels
+        if radius < threshold:
+            self.distance = None
+            self.angle = None
+            self.color = None
+            return
         
         # Calculate the distance to the marker using scaling
         if radius > 0:
@@ -317,7 +357,7 @@ class Vision:
             for color, contour in contours_with_color:
                 # Determine the circle enclosing the current contour
                 ((x, y), radius) = cv2.minEnclosingCircle(contour)
-                if 10 < radius <= largest_marker_radius:
+                if 15 < radius <= largest_marker_radius:
                     # Return the circle parameters and the color
                     return np.array([x, y, radius]), color
         
