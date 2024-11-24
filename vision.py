@@ -41,8 +41,8 @@ class Vision:
     def TrackerThread(self):
         print("Tracker Started")
         # Get the cameras
-        vc_left = cv2.VideoCapture("http://192.168.30.77:8080/video")
-        vc_right = cv2.VideoCapture("http://192.168.30.163:8080/video")
+        vc_left = cv2.VideoCapture("http://192.168.199.77:8080/video")
+        vc_right = cv2.VideoCapture("http://192.168.199.16:8080/video")
 
         # Set frame rates
         vc_left.set(cv2.CAP_PROP_FPS, 30)
@@ -96,19 +96,20 @@ class Vision:
                         self.StereoVision(c_x, x_left, x_right)
                                 
                         # Overlay the information on the video frames
-                        cv2.putText(frame_left, f"Distance: {self.distance:.2f} cm", (10, 30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        cv2.putText(frame_left, f"Angle: {self.angle:.2f} deg", (10, 60),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        cv2.putText(frame_left, f"Color: {self.color}", (10, 90),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        
-                        cv2.putText(frame_right, f"Distance: {self.distance:.2f} cm", (10, 30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        cv2.putText(frame_right, f"Angle: {self.angle:.2f} deg", (10, 60),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        cv2.putText(frame_right, f"Color: {self.color}", (10, 90),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                        if self.distance is not None and self.angle is not None and self.color is not None:
+                            cv2.putText(frame_left, f"Distance: {self.distance:.2f} cm", (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            cv2.putText(frame_left, f"Angle: {self.angle:.2f} deg", (10, 60),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            cv2.putText(frame_left, f"Color: {self.color}", (10, 90),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            
+                            cv2.putText(frame_right, f"Distance: {self.distance:.2f} cm", (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            cv2.putText(frame_right, f"Angle: {self.angle:.2f} deg", (10, 60),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                            cv2.putText(frame_right, f"Color: {self.color}", (10, 90),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                         
                     else:
                         # Marker sizes do not match, likely not the same marker.

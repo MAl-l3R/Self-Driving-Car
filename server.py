@@ -193,20 +193,18 @@ if __name__ == "__main__":
                     # Check left side first
                     checked_left = True
                     print("\tRobot is checking left side for markers.")
-                    desired_angle, steering_angle, duration, speed = calculateRotation(-20)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-30)
                     rotateRobot(desired_angle, steering_angle, duration, speed)
                 elif checked_left and not checked_right:
                     # Check right side, but first reverse back to original track
-                    desired_angle, steering_angle, duration, speed = calculateRotation(-20)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-30)
                     rotateRobot(desired_angle, steering_angle, duration, -speed, towards=False)
                     
                     checked_right = True
                     print("\tRobot is checking right side for markers.")
-                    desired_angle, steering_angle, duration, speed = calculateRotation(20)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(30)
                     rotateRobot(desired_angle, steering_angle, duration, speed)
                 else:
                     # Both sides checked, robot is idle
                     print("\tBoth sides checked. No marker detected, robot is idle.")
                     time.sleep(1)
-                    
-            
