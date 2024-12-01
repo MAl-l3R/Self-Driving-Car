@@ -22,7 +22,7 @@ greenUpper = np.array([80, 255, 255])
 ##### Camera Parameters ##########################################
 baseline = 0.10  # Distance between the two cameras in meters
 focal_length = 500  # Focal length in pixels
-size_threshold = 0.2  # Tolerance level for size similarity (20%)
+size_threshold = 0.3  # Tolerance level for size similarity (20%)
 largest_marker_radius = 80  # Largest detectable marker's radius
 distance_to_largest_marker_radius = 20  # In centimeters
 ##################################################################
@@ -44,8 +44,8 @@ class Vision:
         # Check is user wants to use stereo vision or single camera
         if stereo:
             # Get the cameras
-            vc_left = cv2.VideoCapture("http://192.168.81.77:8080/video")   # Other phone
-            vc_right = cv2.VideoCapture("http://192.168.81.44:8080/video")  # Maher's phone
+            vc_left = cv2.VideoCapture("http://192.168.223.77:8080/video")   # Other phone
+            vc_right = cv2.VideoCapture("http://192.168.223.249:8080/video")  # Maher's phone
 
             # Set frame rates
             vc_left.set(cv2.CAP_PROP_FPS, 30)
@@ -132,27 +132,51 @@ class Vision:
                 if not same_marker_detected:
                     self.distance = None  # Reset distance and color when markers don't match
                     self.color = None
-                    
-                    # Determine which camera sees the larger marker
+
+                    margin = 5  # Pixel margin to check if marker is too close to the frame edges
+                    frame_height_left, frame_width_left = frame_left.shape[:2]
+                    frame_height_right, frame_width_right = frame_right.shape[:2]
+
+                    # Determine which camera sees the marker that is better positioned within the frame
                     if circle_left is not None and circle_right is not None:
-                        radius_left = circle_left[2]
-                        radius_right = circle_right[2]
-                        if radius_left > radius_right:
-                            self.angle = -20
-                        elif radius_right > radius_left:
-                            self.angle = 20
+                        x_left, y_left, radius_left = circle_left
+                        x_right, y_right, radius_right = circle_right
+
+                        # Check if markers are too close to frame edges
+                        left_marker_near_edge = (
+                            x_left - radius_left < margin or x_left + radius_left > frame_width_left - margin or
+                            y_left - radius_left < margin or y_left + radius_left > frame_height_left - margin
+                        )
+                        right_marker_near_edge = (
+                            x_right - radius_right < margin or x_right + radius_right > frame_width_right - margin or
+                            y_right - radius_right < margin or y_right + radius_right > frame_height_right - margin
+                        )
+
+                        # Tie-breaker based on marker position within the frame
+                        if left_marker_near_edge and not right_marker_near_edge:
+                            self.angle = 20  # Favor the right marker
+                        elif right_marker_near_edge and not left_marker_near_edge:
+                            self.angle = -20  # Favor the left marker
                         else:
-                            print("\t\tERROR: Markers have equal size; cannot determine direction.")
-                            self.angle = 0
-    
+                            # Both markers are either near the edge or both are well within the frame
+                            # Proceed to size comparison tie-breaker
+                            if radius_left > radius_right:
+                                self.angle = -20
+                            elif radius_right > radius_left:
+                                self.angle = 20
+                            else:
+                                print("\t\tERROR: Markers have equal size; cannot determine direction.")
+                                self.angle = 0
+
                     elif circle_left is not None and circle_right is None:
                         self.angle = -20
                     elif circle_left is None and circle_right is not None:
                         self.angle = 20
                     else:
                         self.angle = None  # No markers detected in either frame
-                    
+
                     if self.angle is not None:
+                        # Overlay the instruction on the frames
                         cv2.putText(frame_left, "Same marker not detected in both frames", (10, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                         cv2.putText(frame_left, f"Angle: Try {self.angle:.2f} deg", (10, 60),
@@ -162,6 +186,7 @@ class Vision:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                         cv2.putText(frame_right, f"Angle: Try {self.angle:.2f} deg", (10, 60),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
                 
                 # Display the result (Does not work on macOS with threading. So comment out for macOS, uncomment for Windows)
                 cv2.imshow("Left Camera", frame_left)
@@ -177,7 +202,7 @@ class Vision:
             print("Tracker Ended")
         
         else:
-            vc = cv2.VideoCapture("http://192.168.81.44:8080/video")  # Maher's phone
+            vc = cv2.VideoCapture("http://192.168.223.249:8080/video")  # Maher's phone
             
             # Try to get the first frames
             if vc.isOpened():
@@ -289,7 +314,7 @@ class Vision:
                 return
             
         # Minimum radius threshold to filter out small unreliable detections
-        threshold = 15  # Pixels
+        threshold = 20  # Pixels
         if radius < threshold:
             self.distance = None
             self.angle = None
@@ -357,7 +382,7 @@ class Vision:
             for color, contour in contours_with_color:
                 # Determine the circle enclosing the current contour
                 ((x, y), radius) = cv2.minEnclosingCircle(contour)
-                if 15 < radius <= largest_marker_radius:
+                if 20 < radius <= largest_marker_radius:
                     # Return the circle parameters and the color
                     return np.array([x, y, radius]), color
         

@@ -32,7 +32,7 @@ def move_joints(command):
 
     print("Movement completed.")
 
-    time.sleep(1)  # DEBUG MODE: Just to see robot's progress step-by-step
+    # time.sleep(1)  # DEBUG MODE: Just to see robot's progress step-by-step
 
 
 def execute(data):
