@@ -54,10 +54,14 @@ port = 9999
 server = Server(host, port)
 queue = Queue()
 
+STEREOVISION = True
 MAX_STEERING_ANGLE = 35  # degrees
 MAX_MOTOR_SPEED = 1050  # degrees per second
 MAX_DURATION = 5  # seconds (max duration for turns to prevent overly long turns)   ##### Can actually be 2 theoretically. CHECK #####
-TOLERANCE = 17.5  # degrees (tolerance for angle to the marker)
+if STEREOVISION:
+    TOLERANCE = 17.5  # degrees (tolerance for angle to the marker)
+else:
+    TOLERANCE = 15
 WHEEL_DIAMETER = 5.6  # cm
 WHEELBASE = 14.75  # cm (distance between front and rear axles)
 # CALIBRATION_FACTOR = 3.45  # Derived from practical tests (1.90 / 0.55 ≈ 3.45)
@@ -67,7 +71,7 @@ WHEEL_CIRCUMFERENCE = math.pi * WHEEL_DIAMETER
 MAX_ROTATIONS_PER_SEC = MAX_MOTOR_SPEED / 360.0
 MAX_SPEED_CM_PER_SEC = WHEEL_CIRCUMFERENCE * MAX_ROTATIONS_PER_SEC
 
-vision = vs.Vision(stereo=True)
+vision = vs.Vision(stereo=STEREOVISION)
 print("Tracker Initializing...")
 time.sleep(5)  # Wait for the tracker to initialize
 
@@ -154,19 +158,29 @@ if __name__ == "__main__":
             checked_right = False
             
             # Rotate the robot until robot is facing the marker
-            if round(abs(angle)) > TOLERANCE or color is None:
+            if math.ceil(abs(angle)) > TOLERANCE or color is None:
                 desired_angle, steering_angle, duration, speed = calculateRotation(angle)
                 rotateRobot(desired_angle, steering_angle, duration, speed)
 
             else:
                 # Angle is approximately zero; move straight towards the marker
                 if color == 'green':
-                    distance = distance - 30  # (Undershoot extra for fast speed to be able to see the next marker)
+                    if STEREOVISION:
+                        distance = distance - 25  # (Undershoot extra for fast speed to be able to see the next marker)
+                    else:
+                        distance = distance - 35  # (Undershoot extra for fast speed to be able to see the next marker)
                 else:
-                    distance = distance - 20  # (Undershoot to be able to see the next marker)
+                    if STEREOVISION:
+                        distance = distance - 20  # (Undershoot to be able to see the next marker)
+                    else:
+                        distance = distance - 30  # (Undershoot to be able to see the next marker)
                 direction = 0
 
-                if distance is not None and distance >= 0:
+                if distance is not None and math.floor(distance) > 0:
+                    # Ignore incorrect, unreasonable distance readings
+                    if distance > 70:
+                        continue
+
                     # Calculate linear speed
                     speed_cm_per_sec = (speed / 100.0) * MAX_SPEED_CM_PER_SEC  # cm/s
 
@@ -182,8 +196,13 @@ if __name__ == "__main__":
                     print("\tRobot reply:", reply)
 
                 else:
-                    if distance < 0:
-                        rotateRobot(0, 0, 2, 25)
+                    if math.floor(distance) <= 0:
+                        print(f"MOVE: Moving forward for 1 second to find next marker.")
+                        # Send command to robot
+                        server.sendData(direction, 1, 25, queue)
+                        # Wait for robot to complete the action
+                        reply = queue.get()
+                        print("\tRobot reply:", reply)
                     print("ERROR: No valid distance, not moving.")
 
         else:
@@ -195,30 +214,37 @@ if __name__ == "__main__":
             # No marker detected, robot is idle
             else:
                 print("No marker detected.")
+
+                check_angle = 30
                 
                 if not checked_back and not checked_left and not checked_right:
                     # Reverse a little, then check left and right
                     checked_back = True
-                    print("\tRobot is reversing to search for markers.")
-                    rotateRobot(0, 0, 2, -25, towards=False)
+                    if STEREOVISION:
+                        print("\tRobot is reversing to search for markers.")
+                        rotateRobot(0, 0, 2, -25, towards=False)
                 elif checked_back and not checked_left and not checked_right:
+                    # Reverse then turn for single camera
+                    if not STEREOVISION:
+                        print("\tRobot is reversing to search for markers.")
+                        rotateRobot(0, 0, 2, -25, towards=False)
                     # Check left side first
                     checked_left = True
                     print("\tRobot is checking left side for markers.")
-                    desired_angle, steering_angle, duration, speed = calculateRotation(-30)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-check_angle)
                     rotateRobot(desired_angle, steering_angle, duration, speed)
                 elif checked_back and checked_left and not checked_right:
                     # Check right side, but first reverse back to original track
-                    desired_angle, steering_angle, duration, speed = calculateRotation(-30)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(-check_angle)
                     rotateRobot(desired_angle, steering_angle, duration, -speed, towards=False)
                     
                     checked_right = True
                     print("\tRobot is checking right side for markers.")
-                    desired_angle, steering_angle, duration, speed = calculateRotation(30)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(check_angle)
                     rotateRobot(desired_angle, steering_angle, duration, speed)
                 elif checked_back and checked_left and checked_right:
                     # Reverse to check, but first reverse back to original track
-                    desired_angle, steering_angle, duration, speed = calculateRotation(30)
+                    desired_angle, steering_angle, duration, speed = calculateRotation(check_angle)
                     rotateRobot(desired_angle, steering_angle, duration, -speed, towards=False)
 
                     print("\tRobot is reversing more to search for markers.")

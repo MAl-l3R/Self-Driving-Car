@@ -32,7 +32,7 @@ def move_joints(command):
 
     print("Movement completed.")
 
-    # time.sleep(1)  # DEBUG MODE: Just to see robot's progress step-by-step
+    time.sleep(0.2)  # To account for delay when the camera feeds are not in sync
 
 
 def execute(data):

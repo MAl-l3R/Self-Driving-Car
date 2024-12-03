@@ -22,7 +22,7 @@ greenUpper = np.array([80, 255, 255])
 ##### Camera Parameters ##########################################
 baseline = 0.10  # Distance between the two cameras in meters
 focal_length = 500  # Focal length in pixels
-size_threshold = 0.3  # Tolerance level for size similarity (20%)
+size_threshold = 0.2  # Tolerance level for size similarity (20%)
 largest_marker_radius = 80  # Largest detectable marker's radius
 distance_to_largest_marker_radius = 20  # In centimeters
 ##################################################################
