@@ -7,7 +7,8 @@ This project implements a self-driving robot capable of navigating towards a seq
 
 The robot dynamically adjusts its movement based on the marker's color (green, yellow, or red) and the marker’s position.  
 
-Video Demo: https://drive.google.com/file/d/1f2Zs8-B_L2gvpKYR5BC-QMHg9-b_ek6E/view?usp=sharing
+Demo with Stereovision: https://drive.google.com/file/d/1lRaPKS5TnLb1Z7ShWxknnIU9i4wzsBsn/view?usp=sharing
+Demo with Single Camera: https://drive.google.com/file/d/19KFBZsDlfkb0DBfBSvcmcoC50nHw_-y_/view?usp=sharing
 
 ---
 
@@ -62,4 +63,3 @@ The steering mechanism uses **5 gears** to ensure precise control:
 
 <img src="https://github.com/user-attachments/assets/ea95dbe6-f0a6-4622-becb-3600ecfdf066" alt="Steering Mechanism" width="500"/>
 <img src="https://github.com/user-attachments/assets/11118b19-6cfa-460a-9eac-175836df2c20" alt="Robot Design" width="500"/>
-
